@@ -50,11 +50,13 @@ public class PunktResidum
     public string PunktNr      { get; set; } = "";
     public double StreckeH     { get; set; }   // Horizontalstrecke [m]
     public double vWinkel_cc   { get; set; }   // Winkelresiduum [cc]
-    public double vStrecke_mm  { get; set; }   // Streckenresiduum [mm]
+    public double vQuer_mm     { get; set; }   // Querabweichung [mm]  (= senkrecht zur Längsabweichung)
+    public double vStrecke_mm  { get; set; }   // Längsabweichung [mm]
     public double vHoehe_mm    { get; set; }   // Höhenresiduum [mm]
     // Aktivierungsstatus der Einzelbeobachtungen
     public bool   RichtungAktiv { get; set; } = true;
     public bool   StreckeAktiv  { get; set; } = true;
+    public bool   HoeheAktiv    { get; set; } = true;
 }
 
 public class StationierungsErgebnis
@@ -94,6 +96,7 @@ public static class FreieStationierungRechner
         bool freierMassstab           = true,
         bool[]? aktivRichtung         = null,
         bool[]? aktivStrecke          = null,
+        bool[]? aktivHoehe            = null,
         bool berechnung3D             = true,
         double fehlergrenzeMM_Hoehe   = 10.0)
     {
@@ -105,6 +108,7 @@ public static class FreieStationierungRechner
         // Aktivierungsarrays: Standard = alle aktiv
         bool[] aktHz  = aktivRichtung ?? Enumerable.Repeat(true, n).ToArray();
         bool[] aktStr = aktivStrecke  ?? Enumerable.Repeat(true, n).ToArray();
+        bool[] aktHoe = aktivHoehe    ?? aktStr;   // Standard: selbe Aktivierung wie Strecke
 
         // Validierung: Randbedingungen
         int nDir  = aktHz.Count(b => b);
@@ -206,18 +210,18 @@ public static class FreieStationierungRechner
         double s0_mm = r > 0 ? Math.Sqrt(vTPv / r) : 0;
 
         // ── Schritt 4: Höhenberechnung ────────────────────────────────────────
-        // Nur Punkte mit aktiver Streckenbeobachtung (benötigt S und V)
+        // Nur Punkte mit aktiver Höhenbeobachtung (aktHoe[i] = true, benötigt S und V)
         double hMittel   = 0;
-        bool   ist3D     = berechnung3D;
+        bool   ist3D     = berechnung3D && aktHoe.Any(b => b);
         string warnHoehe = "";
 
-        if (berechnung3D)
+        if (ist3D)
         {
             double[] hStation_i = new double[n];
             double sumNum = 0, sumDen = 0;
             for (int i = 0; i < n; i++)
             {
-                if (!aktStr[i]) continue;
+                if (!aktHoe[i]) continue;
                 hStation_i[i] = punkte[i].Hoehe + punkte[i].Zielhoehe
                                 - instrumentenhoehe
                                 - punkte[i].Strecke * Math.Cos(v_rad[i]);
@@ -227,17 +231,14 @@ public static class FreieStationierungRechner
             }
             hMittel = sumDen > 0 ? sumNum / sumDen : 0;
 
-            // Prüfe Höhenresiduen – Grenze = 3 × Fehlergrenze
+            // Prüfe Höhenresiduen – stiller Fallback auf 2D bei Überschreitung (3 × Fehlergrenze)
             double grenze = 3.0 * fehlergrenzeMM_Hoehe;
             for (int i = 0; i < n; i++)
             {
-                if (!aktStr[i]) continue;
+                if (!aktHoe[i]) continue;
                 double vH_mm = (hStation_i[i] - hMittel) * 1000.0;
                 if (Math.Abs(vH_mm) > grenze)
                 {
-                    warnHoehe = $"Höhenresiduen überschreiten das 3-fache der Fehlergrenze " +
-                                $"({grenze:F0} mm).\n" +
-                                $"Die Berechnung wird automatisch 2-dimensional durchgeführt.";
                     ist3D   = false;
                     hMittel = 0;
                     break;
@@ -251,11 +252,12 @@ public static class FreieStationierungRechner
         {
             double s0_i  = Math.Sqrt(Math.Pow(punkte[i].R - R_FS, 2) +
                                      Math.Pow(punkte[i].H - H_FS, 2));
-            double vW_cc = (aktHz[i] && s0_i > 1e-6)
-                ? (vQuer_m[i] / s0_i) * RAD2CC : 0;
+            double vW_cc   = (aktHz[i] && s0_i > 1e-6)
+                ? (vQuer_m[i] / s0_i) * RAD2CC : double.NaN;
+            double vQ_mm   = aktHz[i] ? vQuer_m[i] * 1000.0 : double.NaN;
 
             double vH_mm = double.NaN;
-            if (ist3D && aktStr[i])
+            if (ist3D && aktHoe[i])
             {
                 double hStation = punkte[i].Hoehe + punkte[i].Zielhoehe
                                   - instrumentenhoehe
@@ -267,11 +269,13 @@ public static class FreieStationierungRechner
             {
                 PunktNr        = punkte[i].PunktNr,
                 StreckeH       = dh[i],
-                vWinkel_cc     = aktHz[i]  ? vW_cc : double.NaN,
+                vWinkel_cc     = vW_cc,
+                vQuer_mm       = vQ_mm,
                 vStrecke_mm    = aktStr[i] ? vStr_m[i] * 1000 : double.NaN,
                 vHoehe_mm      = vH_mm,
                 RichtungAktiv  = aktHz[i],
-                StreckeAktiv   = aktStr[i]
+                StreckeAktiv   = aktStr[i],
+                HoeheAktiv     = aktHoe[i]
             });
         }
 

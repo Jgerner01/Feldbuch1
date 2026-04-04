@@ -106,6 +106,8 @@ public class DxfCanvas : Panel
         MouseMove        += OnMouseMove;
         MouseUp          += OnMouseUp;
         MouseWheel       += OnMouseWheel;
+        MouseEnter       += (_, _) => Focus();
+        TabStop           = true;
     }
 
     protected override CreateParams CreateParams

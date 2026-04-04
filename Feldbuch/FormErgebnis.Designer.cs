@@ -45,12 +45,12 @@ partial class FormErgebnis
         // ── Titel ─────────────────────────────────────────────────────────────
         lblTitel.Text     = "Freie Stationierung  –  Ergebnis";
         lblTitel.Location = new Point(20, 15);
-        lblTitel.Size     = new Size(640, 30);
+        lblTitel.Size     = new Size(820, 30);
         lblTitel.Font     = new Font("Segoe UI", 14F, FontStyle.Bold);
 
         lblTrennlinie.BorderStyle = BorderStyle.Fixed3D;
         lblTrennlinie.Location    = new Point(20, 52);
-        lblTrennlinie.Size        = new Size(640, 2);
+        lblTrennlinie.Size        = new Size(820, 2);
 
         // ── Info-Labels ───────────────────────────────────────────────────────
         int y = 62, step = 24;
@@ -59,7 +59,7 @@ partial class FormErgebnis
               lblOrient, lblMassstab, lblS0, lblIter })
         {
             lbl.Location = new Point(20, y);
-            lbl.Size     = new Size(650, 22);
+            lbl.Size     = new Size(820, 22);
             lbl.Font     = monoFont;
             y += step;
         }
@@ -68,20 +68,20 @@ partial class FormErgebnis
         // ── Zweite Trennlinie ─────────────────────────────────────────────────
         lblTrennlinie2.BorderStyle = BorderStyle.Fixed3D;
         lblTrennlinie2.Location    = new Point(20, y);
-        lblTrennlinie2.Size        = new Size(640, 2);
+        lblTrennlinie2.Size        = new Size(820, 2);
         y += 8;
 
-        // ── Residuen ─────────────────────────────────────────────────────────
+        // ── Residuen-Tabelle ──────────────────────────────────────────────────
         lblResTitle.Text     = "Residuen pro Anschlusspunkt:";
         lblResTitle.Location = new Point(20, y);
-        lblResTitle.Size     = new Size(400, 24);
+        lblResTitle.Size     = new Size(500, 24);
         lblResTitle.Font     = boldFont;
         y += 30;
 
         dgvResiduen.Location            = new Point(20, y);
-        dgvResiduen.Size                = new Size(640, 220);
+        dgvResiduen.Size                = new Size(820, 220);
         dgvResiduen.AllowUserToAddRows  = false;
-        dgvResiduen.ReadOnly            = false;   // Checkbox-Spalte muss editierbar sein
+        dgvResiduen.ReadOnly            = false;
         dgvResiduen.SelectionMode       = DataGridViewSelectionMode.FullRowSelect;
         dgvResiduen.Font                = new Font("Courier New", 10F);
         dgvResiduen.RowHeadersVisible   = false;
@@ -90,55 +90,71 @@ partial class FormErgebnis
             new Font("Segoe UI", 9F, FontStyle.Bold);
         dgvResiduen.AlternatingRowsDefaultCellStyle.BackColor = Color.AliceBlue;
 
-        // Spalte: Hz aktiv (Richtung)
-        var colAktivHz = new DataGridViewCheckBoxColumn
-        {
-            Name         = "colAktivHz",
-            HeaderText   = "Hz",
-            ToolTipText  = "Richtungsbeobachtung aktiv",
-            FillWeight   = 6,
-            Width        = 36,
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
-            TrueValue    = true,
-            FalseValue   = false
-        };
+        // ── Spalten ───────────────────────────────────────────────────────────
+        // Reihenfolge: Punkt | Str.h | v Winkel [cc] | v Quer [mm] | [Hz] | v Längs [mm] | [Str] | v Höhe [mm] | [Hoe]
 
-        // Spalte: Str aktiv (Strecke)
+        var colPunktNr  = new DataGridViewTextBoxColumn
+            { Name = "PunktNr",  HeaderText = "Punkt",          ReadOnly = true, FillWeight = 15 };
+        var colStreckeH = new DataGridViewTextBoxColumn
+            { Name = "StreckeH", HeaderText = "Str.h [m]",      ReadOnly = true, FillWeight = 13 };
+        var colVWinkel  = new DataGridViewTextBoxColumn
+            { Name = "vWinkel",  HeaderText = "v Winkel [cc]",  ReadOnly = true, FillWeight = 14 };
+        var colVQuer    = new DataGridViewTextBoxColumn
+            { Name = "vQuer",    HeaderText = "v Quer [mm]",    ReadOnly = true, FillWeight = 13 };
+        var colAktivHz  = new DataGridViewCheckBoxColumn
+        {
+            Name        = "colAktivHz",
+            HeaderText  = "Hz",
+            ToolTipText = "Richtungsbeobachtung aktiv",
+            FillWeight  = 6,
+            Width       = 38,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            TrueValue   = true,
+            FalseValue  = false
+        };
+        var colVLängs   = new DataGridViewTextBoxColumn
+            { Name = "vLängs",   HeaderText = "v Längs [mm]",   ReadOnly = true, FillWeight = 13 };
         var colAktivStr = new DataGridViewCheckBoxColumn
         {
-            Name         = "colAktivStr",
-            HeaderText   = "Str",
-            ToolTipText  = "Streckenbeobachtung aktiv",
-            FillWeight   = 6,
-            Width        = 36,
+            Name        = "colAktivStr",
+            HeaderText  = "Str",
+            ToolTipText = "Streckenbeobachtung aktiv",
+            FillWeight  = 6,
+            Width       = 38,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
-            TrueValue    = true,
-            FalseValue   = false
+            TrueValue   = true,
+            FalseValue  = false
+        };
+        var colVHoehe   = new DataGridViewTextBoxColumn
+            { Name = "vHoehe",   HeaderText = "v Höhe [mm]",    ReadOnly = true, FillWeight = 13 };
+        var colAktivHoe = new DataGridViewCheckBoxColumn
+        {
+            Name        = "colAktivHoehe",
+            HeaderText  = "Hoe",
+            ToolTipText = "Höhenbeobachtung aktiv",
+            FillWeight  = 6,
+            Width       = 38,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            TrueValue   = true,
+            FalseValue  = false
         };
 
-        // Spalten: Werte (ReadOnly)
-        var colPunktNr  = new DataGridViewTextBoxColumn { Name = "PunktNr",  HeaderText = "Punkt",          ReadOnly = true, FillWeight = 14 };
-        var colStreckeH = new DataGridViewTextBoxColumn { Name = "StreckeH", HeaderText = "Str.h [m]",      ReadOnly = true, FillWeight = 14 };
-        var colVWinkel  = new DataGridViewTextBoxColumn { Name = "vWinkel",  HeaderText = "v Winkel [cc]",  ReadOnly = true, FillWeight = 18 };
-        var colVStrecke = new DataGridViewTextBoxColumn { Name = "vStrecke", HeaderText = "v Strecke [mm]", ReadOnly = true, FillWeight = 18 };
-        var colVHoehe   = new DataGridViewTextBoxColumn { Name = "vHoehe",   HeaderText = "v Höhe [mm]",    ReadOnly = true, FillWeight = 18 };
-
-        foreach (var col in new[] { colVWinkel, colVStrecke, colVHoehe })
+        foreach (var col in new[] { colVWinkel, colVQuer, colVLängs, colVHoehe })
             col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
-        // Reihenfolge: Punkt | Str.h | v Winkel | [Hz] | v Strecke | [Str] | v Höhe
-        dgvResiduen.Columns.AddRange(colPunktNr, colStreckeH,
-                                     colVWinkel, colAktivHz,
-                                     colVStrecke, colAktivStr,
-                                     colVHoehe);
+        dgvResiduen.Columns.AddRange(
+            colPunktNr, colStreckeH,
+            colVWinkel, colVQuer, colAktivHz,
+            colVLängs, colAktivStr,
+            colVHoehe, colAktivHoe);
 
-        // Events für Checkbox-Spalten
+        // Events für Checkbox-Spalten: sofort commit + Neuberechnung
         dgvResiduen.CurrentCellDirtyStateChanged += (s, e) =>
         {
             if (dgvResiduen.IsCurrentCellDirty)
             {
                 var colName = dgvResiduen.CurrentCell?.OwningColumn.Name;
-                if (colName == "colAktivHz" || colName == "colAktivStr")
+                if (colName is "colAktivHz" or "colAktivStr" or "colAktivHoehe")
                     dgvResiduen.CommitEdit(DataGridViewDataErrorContexts.Commit);
             }
         };
@@ -147,8 +163,8 @@ partial class FormErgebnis
             if (e.ColumnIndex >= 0)
             {
                 string colName = dgvResiduen.Columns[e.ColumnIndex].Name;
-                if (colName == "colAktivHz" || colName == "colAktivStr")
-                    btnNeuBerechnen.Enabled = true;
+                if (colName is "colAktivHz" or "colAktivStr" or "colAktivHoehe")
+                    OnAktivierungGeaendert();
             }
         };
 
@@ -162,12 +178,11 @@ partial class FormErgebnis
         btnNeuBerechnen.BackColor = Color.FromArgb(60, 130, 60);
         btnNeuBerechnen.ForeColor = Color.White;
         btnNeuBerechnen.FlatStyle = FlatStyle.Flat;
-        btnNeuBerechnen.Enabled   = false;
         btnNeuBerechnen.Click    += btnNeuBerechnen_Click;
 
         btnSchliessen.Text     = "Schliessen";
-        btnSchliessen.Location = new Point(540, y);
-        btnSchliessen.Size     = new Size(120, 36);
+        btnSchliessen.Location = new Point(714, y);
+        btnSchliessen.Size     = new Size(126, 36);
         btnSchliessen.Font     = new Font("Segoe UI", 10F);
         btnSchliessen.Click   += btnSchliessen_Click;
 
@@ -180,7 +195,7 @@ partial class FormErgebnis
             btnNeuBerechnen, btnSchliessen
         });
 
-        ClientSize = new Size(680, y + 56);
+        ClientSize = new Size(860, y + 56);
 
         ((System.ComponentModel.ISupportInitialize)dgvResiduen).EndInit();
         ResumeLayout(false);

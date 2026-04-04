@@ -148,10 +148,6 @@ public partial class FormFreieStationierung : Form
                                     berechnung3D:         par.Berechnung3D,
                                     fehlergrenzeMM_Hoehe: par.FehlergrenzeMM_Hoehe);
 
-            if (!string.IsNullOrEmpty(ergebnis.WarnungHoehe))
-                MessageBox.Show(ergebnis.WarnungHoehe,
-                    "Warnung – Höhenresiduen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
             // Ergebnis in Projektdaten protokollieren
             string standpunkt = txtStandpunkt.Text;
             ProjektdatenManager.SetValue("Freie Stationierung", "Standpunkt",         standpunkt);

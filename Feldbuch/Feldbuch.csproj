@@ -6,7 +6,17 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.1.0</Version>
+    <Authors>Johann Gerner</Authors>
+    <Company>Johann Gerner</Company>
+    <Copyright>© 2026 Johann Gerner</Copyright>
+    <Description>Geodätisches Feldbuch mit Tachymeteranbindung und DXF-Viewer</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="9.0.0" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="prismenkonstanten.csv">

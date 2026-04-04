@@ -20,11 +20,13 @@ partial class Form1
         btnMessen             = new Button();
         btnPrismenkonstante   = new Button();
         btnDxfViewer          = new Button();
-        btnProjektdaten       = new Button();
+        btnProjektdaten          = new Button();
+        btnTachymeterKommunikation = new Button();
+        btnInfo                    = new Button();
         SuspendLayout();
 
         // ── Fenster ───────────────────────────────────────────────────────────
-        ClientSize    = new Size(600, 760);
+        ClientSize    = new Size(600, 830);
         Text          = "Feldbuch";
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -89,6 +91,17 @@ partial class Form1
         btnProjektdaten.Font     = new Font("Segoe UI", 12F);
         btnProjektdaten.Click   += btnProjektdaten_Click;
 
+        // ── Button: Tachymeter Kommunikation ──────────────────────────────────
+        btnTachymeterKommunikation.Text      = "Tachymeter Kommunikation";
+        btnTachymeterKommunikation.Size      = new Size(300, 60);
+        btnTachymeterKommunikation.Location  = new Point(150, 630);
+        btnTachymeterKommunikation.Font      = new Font("Segoe UI", 12F);
+        btnTachymeterKommunikation.BackColor = Color.FromArgb(40, 100, 70);
+        btnTachymeterKommunikation.ForeColor = Color.White;
+        btnTachymeterKommunikation.FlatStyle = FlatStyle.Flat;
+        btnTachymeterKommunikation.FlatAppearance.BorderColor = Color.FromArgb(20, 80, 50);
+        btnTachymeterKommunikation.Click    += btnTachymeterKommunikation_Click;
+
         Controls.Add(lblProjektInfo);
         Controls.Add(btnProjekt);
         Controls.Add(lblTrennlinie);
@@ -97,6 +110,19 @@ partial class Form1
         Controls.Add(btnPrismenkonstante);
         Controls.Add(btnDxfViewer);
         Controls.Add(btnProjektdaten);
+        Controls.Add(btnTachymeterKommunikation);
+
+        // ── Button: Info / Hilfe (links unten) ────────────────────────────────
+        btnInfo.Text      = "?";
+        btnInfo.Size      = new Size(36, 36);
+        btnInfo.Location  = new Point(12, 782);
+        btnInfo.Font      = new Font("Segoe UI", 12F, FontStyle.Bold);
+        btnInfo.FlatStyle = FlatStyle.Flat;
+        btnInfo.ForeColor = Color.FromArgb(80, 80, 80);
+        btnInfo.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 180);
+        btnInfo.Click    += btnInfo_Click;
+        Controls.Add(btnInfo);
+
         ResumeLayout(false);
     }
 
@@ -106,6 +132,8 @@ partial class Form1
     private Button btnFreieStationierung = null!;
     private Button btnMessen             = null!;
     private Button btnPrismenkonstante   = null!;
-    private Button btnDxfViewer          = null!;
-    private Button btnProjektdaten       = null!;
+    private Button btnDxfViewer               = null!;
+    private Button btnProjektdaten            = null!;
+    private Button btnTachymeterKommunikation = null!;
+    private Button btnInfo                    = null!;
 }

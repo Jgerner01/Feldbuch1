@@ -5,6 +5,7 @@ public partial class FormErgebnis : Form
     private readonly string                    _standpunkt;
     private readonly double                    _iH;
     private readonly List<StationierungsPunkt> _allePunkte;
+    private bool _initializingGrid;
 
     public FormErgebnis(string standpunkt, double iH,
                         StationierungsErgebnis erg,
@@ -15,11 +16,21 @@ public partial class FormErgebnis : Form
         _iH         = iH;
         _allePunkte = allePunkte;
 
-        // Reihenfolge der Spalten: PunktNr | StreckeH | vWinkel | colAktivHz | vStrecke | colAktivStr | vHoehe
+        // Reihenfolge der Spalten:
+        // PunktNr | StreckeH | vWinkel | vQuer | [Hz] | vLängs | [Str] | vHoehe | [Hoe]
+        _initializingGrid = true;
         foreach (var p in _allePunkte)
-            dgvResiduen.Rows.Add(p.PunktNr, "", "", true, "", true, "");
+        {
+            bool hoeAktiv = p.Hoehe != 0.0;   // Hoehe == 0 → automatisch deaktiviert
+            dgvResiduen.Rows.Add(p.PunktNr, "", "", "", true, "", true, "", hoeAktiv);
+        }
+        _initializingGrid = false;
 
         AktualisiereAnzeige(erg);
+
+        // Falls Höhenpunkte automatisch deaktiviert wurden: Neuberechnung mit korrekter Aktivierung
+        if (RechenparameterManager.Params.Berechnung3D && _allePunkte.Any(p => p.Hoehe == 0.0))
+            Neuberechnen();
     }
 
     // ── Ergebnisanzeige aktualisieren ─────────────────────────────────────────
@@ -32,7 +43,7 @@ public partial class FormErgebnis : Form
         lblH.Text          = $"H  (Hochwert):           {erg.H:F3} m";
         lblHoehe.Text      = erg.Berechnung3D
             ? $"Höhe:                    {erg.Hoehe:F3} m"
-            : $"Höhe:                    (2D – nicht berechnet)";
+            : $"Höhe:                    –  (keine aktiven Höhenmessungen)";
         lblOrient.Text     = $"Orientierungsunbekannte: {erg.Orientierung_gon:F4} gon";
         lblMassstab.Text   = $"Maßstab (Helmert):       {erg.Massstab:F6}" +
                              (RechenparameterManager.Params.FreierMassstab
@@ -47,18 +58,18 @@ public partial class FormErgebnis : Form
 
         // ── Residuen in Tabelle schreiben ─────────────────────────────────────
         var resDict = erg.Residuen.ToDictionary(r => r.PunktNr);
-        var p = RechenparameterManager.Params;
+        var p       = RechenparameterManager.Params;
 
         for (int i = 0; i < dgvResiduen.Rows.Count; i++)
         {
-            var row     = dgvResiduen.Rows[i];
-            string pNr  = _allePunkte[i].PunktNr;
+            var    row = dgvResiduen.Rows[i];
+            string pNr = _allePunkte[i].PunktNr;
 
             if (resDict.TryGetValue(pNr, out var res))
             {
                 row.Cells["StreckeH"].Value = $"{res.StreckeH:F3}";
 
-                // Richtung
+                // v Winkel [cc] – Querabweichung als Winkelmaß
                 if (res.RichtungAktiv && !double.IsNaN(res.vWinkel_cc))
                 {
                     row.Cells["vWinkel"].Value = $"{res.vWinkel_cc:+0.0;-0.0;0.0}";
@@ -70,20 +81,32 @@ public partial class FormErgebnis : Form
                     row.Cells["vWinkel"].Style.BackColor = Color.LightGray;
                 }
 
-                // Strecke
-                if (res.StreckeAktiv && !double.IsNaN(res.vStrecke_mm))
+                // v Quer [mm] – Querabweichung in Millimeter
+                if (res.RichtungAktiv && !double.IsNaN(res.vQuer_mm))
                 {
-                    row.Cells["vStrecke"].Value = $"{res.vStrecke_mm:+0.0;-0.0;0.0}";
-                    AmpelFarbe(row.Cells["vStrecke"], Math.Abs(res.vStrecke_mm), p.FehlergrenzeMM_Strecke);
+                    row.Cells["vQuer"].Value = $"{res.vQuer_mm:+0.0;-0.0;0.0}";
+                    AmpelFarbe(row.Cells["vQuer"], Math.Abs(res.vQuer_mm), p.FehlergrenzeMM_Strecke);
                 }
                 else
                 {
-                    row.Cells["vStrecke"].Value = "–";
-                    row.Cells["vStrecke"].Style.BackColor = Color.LightGray;
+                    row.Cells["vQuer"].Value = "–";
+                    row.Cells["vQuer"].Style.BackColor = Color.LightGray;
                 }
 
-                // Höhe (hängt an Strecke)
-                if (res.StreckeAktiv && !double.IsNaN(res.vHoehe_mm))
+                // v Längs [mm] – Längsabweichung (Streckenresiduum)
+                if (res.StreckeAktiv && !double.IsNaN(res.vStrecke_mm))
+                {
+                    row.Cells["vLängs"].Value = $"{res.vStrecke_mm:+0.0;-0.0;0.0}";
+                    AmpelFarbe(row.Cells["vLängs"], Math.Abs(res.vStrecke_mm), p.FehlergrenzeMM_Strecke);
+                }
+                else
+                {
+                    row.Cells["vLängs"].Value = "–";
+                    row.Cells["vLängs"].Style.BackColor = Color.LightGray;
+                }
+
+                // v Höhe [mm]
+                if (res.HoeheAktiv && !double.IsNaN(res.vHoehe_mm))
                 {
                     row.Cells["vHoehe"].Value = $"{res.vHoehe_mm:+0.0;-0.0;0.0}";
                     AmpelFarbe(row.Cells["vHoehe"], Math.Abs(res.vHoehe_mm), p.FehlergrenzeMM_Hoehe);
@@ -96,47 +119,52 @@ public partial class FormErgebnis : Form
             }
             else
             {
-                // Punkt komplett inaktiv
                 row.Cells["StreckeH"].Value = "–";
                 row.Cells["vWinkel"].Value  = "–";
-                row.Cells["vStrecke"].Value = "–";
+                row.Cells["vQuer"].Value    = "–";
+                row.Cells["vLängs"].Value   = "–";
                 row.Cells["vHoehe"].Value   = "–";
-                row.Cells["vWinkel"].Style.BackColor  = Color.LightGray;
-                row.Cells["vStrecke"].Style.BackColor = Color.LightGray;
-                row.Cells["vHoehe"].Style.BackColor   = Color.LightGray;
+                row.Cells["vWinkel"].Style.BackColor = Color.LightGray;
+                row.Cells["vQuer"].Style.BackColor   = Color.LightGray;
+                row.Cells["vLängs"].Style.BackColor  = Color.LightGray;
+                row.Cells["vHoehe"].Style.BackColor  = Color.LightGray;
             }
         }
     }
 
-    // ── "Neu berechnen" ───────────────────────────────────────────────────────
-    private void btnNeuBerechnen_Click(object? sender, EventArgs e)
+    // ── Neuberechnung (manuell oder bei Aktivierungsänderung) ─────────────────
+    private void OnAktivierungGeaendert()
     {
-        int n = _allePunkte.Count;
+        if (_initializingGrid) return;
+        Neuberechnen();
+    }
+
+    private void Neuberechnen()
+    {
+        int    n      = _allePunkte.Count;
         bool[] aktHz  = new bool[n];
         bool[] aktStr = new bool[n];
+        bool[] aktHoe = new bool[n];
 
         for (int i = 0; i < n; i++)
         {
-            aktHz[i]  = dgvResiduen.Rows[i].Cells["colAktivHz"].Value  is true;
-            aktStr[i] = dgvResiduen.Rows[i].Cells["colAktivStr"].Value is true;
+            aktHz[i]  = dgvResiduen.Rows[i].Cells["colAktivHz"].Value    is true;
+            aktStr[i] = dgvResiduen.Rows[i].Cells["colAktivStr"].Value   is true;
+            aktHoe[i] = dgvResiduen.Rows[i].Cells["colAktivHoehe"].Value is true;
         }
 
         try
         {
-            var par  = RechenparameterManager.Params;
+            var par = RechenparameterManager.Params;
             var erg = FreieStationierungRechner.Berechnen(
                 _allePunkte, _iH,
                 freierMassstab:       par.FreierMassstab,
                 aktivRichtung:        aktHz,
                 aktivStrecke:         aktStr,
+                aktivHoehe:           aktHoe,
                 berechnung3D:         par.Berechnung3D,
                 fehlergrenzeMM_Hoehe: par.FehlergrenzeMM_Hoehe);
 
-            if (!string.IsNullOrEmpty(erg.WarnungHoehe))
-                MessageBox.Show(erg.WarnungHoehe,
-                    "Warnung – Höhenresiduen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-            // Standpunkt in Feldbuchpunkte.json aktualisieren
             FeldbuchpunkteManager.AddOrUpdate(new FeldbuchPunkt
             {
                 PunktNr          = _standpunkt,
@@ -147,11 +175,10 @@ public partial class FormErgebnis : Form
                 Orientierung_gon = erg.Orientierung_gon,
                 IstBerechnung3D  = erg.Berechnung3D,
                 Datum            = DateTime.Now.ToString("yyyy-MM-dd"),
-                Quelle           = "Freie Stationierung (Neuberechnung)"
+                Quelle           = "Freie Stationierung"
             });
 
             AktualisiereAnzeige(erg);
-            btnNeuBerechnen.Enabled = false;
 
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             ProjektdatenManager.SetValue("Freie Stationierung", "Standpunkt",         _standpunkt);
@@ -167,10 +194,12 @@ public partial class FormErgebnis : Form
         }
     }
 
+    private void btnNeuBerechnen_Click(object? sender, EventArgs e) => Neuberechnen();
+
     // ── Ampel-Färbung ─────────────────────────────────────────────────────────
-    // Grün:  |v| ≤ (Fehlergrenze − 1)    → unauffällig
-    // Gelb:  |v| ∈ (Fehlergrenze − 1 … Fehlergrenze + 5]   → Warnung
-    // Rot:   |v| > (Fehlergrenze + 5)    → Überschreitung
+    // Grün:  |v| ≤ (Fehlergrenze − 1)
+    // Gelb:  |v| ∈ (Fehlergrenze − 1 … Fehlergrenze + 5]
+    // Rot:   |v| > (Fehlergrenze + 5)
     static void AmpelFarbe(DataGridViewCell cell, double absVal, double limit)
     {
         if (absVal <= limit - 1.0)

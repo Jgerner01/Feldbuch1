@@ -88,4 +88,16 @@ public partial class Form1 : Form
         using var form = new FormProjektdaten();
         form.ShowDialog(this);
     }
+
+    private void btnTachymeterKommunikation_Click(object? sender, EventArgs e)
+    {
+        using var form = new FormTachymeterKommunikation();
+        form.ShowDialog(this);
+    }
+
+    private void btnInfo_Click(object? sender, EventArgs e)
+    {
+        using var form = new FormInfo();
+        form.ShowDialog(this);
+    }
 }
